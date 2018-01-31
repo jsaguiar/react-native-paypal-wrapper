@@ -42,17 +42,18 @@ RCT_EXPORT_METHOD(initializeWithOptions:(NSString *) environment clientId:(NSStr
         [PayPalMobile initializeWithClientIdsForEnvironments:@{environment : clientId}];
         [PayPalMobile preconnectWithEnvironment:environment];
     });
-
-    if([options objectForKey:@"merchantName"] != nil 
-        && [options objectForKey:@"merchantPrivacyPolicyUri"] != nil 
-        && [options objectForKey:@"merchantUserAgreementUri"] != nil ) {
-
+    
+    if([options objectForKey:@"merchantName"] != nil
+       && [options objectForKey:@"merchantPrivacyPolicyUri"] != nil
+       && [options objectForKey:@"merchantUserAgreementUri"] != nil ) {
+        
         NSString *merchantName = [RCTConvert NSString:options[@"merchantName"]];
         NSString *merchantPrivacyPolicyUri = [RCTConvert NSString:options[@"merchantPrivacyPolicyUri"]];
         NSString *merchantUserAgreementUri = [RCTConvert NSString:options[@"merchantUserAgreementUri"]];
-
+        
         self.configuration = [[PayPalConfiguration alloc] init];
         self.configuration.merchantName = merchantName;
+        self.configuration.payPalShippingAddressOption = PayPalShippingAddressOptionNone;
         self.configuration.merchantPrivacyPolicyURL = [NSURL URLWithString:merchantPrivacyPolicyUri];
         self.configuration.merchantUserAgreementURL = [NSURL URLWithString:merchantUserAgreementUri];
     }
@@ -63,7 +64,7 @@ RCT_EXPORT_METHOD(getClientMetadataId:(RCTPromiseResolveBlock)resolve
 {
     self.resolve = resolve;
     self.reject = reject;
-
+    
     NSString *metadataID = [PayPalMobile clientMetadataID];
     self.resolve(metadataID);
 }
@@ -73,9 +74,9 @@ RCT_EXPORT_METHOD(obtainConsent:(RCTPromiseResolveBlock)resolve
 {
     self.resolve = resolve;
     self.reject = reject;
-
+    
     PayPalFuturePaymentViewController *vc = [[PayPalFuturePaymentViewController alloc] initWithConfiguration:self.configuration delegate:self];
-
+    
     // Present the PayPalFuturePaymentViewController
     UIViewController *visibleVC = [[[UIApplication sharedApplication] keyWindow] rootViewController];
     do {
@@ -104,10 +105,9 @@ RCT_EXPORT_METHOD(pay:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)r
     [self.payment setAmount:[[NSDecimalNumber alloc] initWithString:price]];
     [self.payment setCurrencyCode:currency];
     [self.payment setShortDescription:description];
-    
     self.configuration = [[PayPalConfiguration alloc] init];
-    [self.configuration setAcceptCreditCards:false];
-    [self.configuration setPayPalShippingAddressOption:PayPalShippingAddressOptionPayPal];
+    [self.configuration setAcceptCreditCards:true];
+    [self.configuration setPayPalShippingAddressOption: PayPalShippingAddressOptionNone];
     
     PayPalPaymentViewController *vc = [[PayPalPaymentViewController alloc] initWithPayment:self.payment
                                                                              configuration:self.configuration
@@ -124,7 +124,7 @@ RCT_EXPORT_METHOD(pay:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)r
     dispatch_async(dispatch_get_main_queue(), ^{
         [visibleVC presentViewController:vc animated:YES completion:nil];
     });
-
+    
 }
 
 
@@ -153,7 +153,7 @@ RCT_EXPORT_METHOD(pay:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)r
 #pragma mark - PayPalFuturePaymentDelegate methods
 
 - (void)payPalFuturePaymentDidCancel:(PayPalFuturePaymentViewController *)futurePaymentViewController {
-  // User cancelled login. Dismiss the PayPalLoginViewController, breathe deeply.
+    // User cancelled login. Dismiss the PayPalLoginViewController, breathe deeply.
     [futurePaymentViewController.presentingViewController dismissViewControllerAnimated:YES completion:^{
         if (self.reject) {
             NSError *error = [NSError errorWithDomain:RCTErrorDomain code:1 userInfo:NULL];
@@ -173,3 +173,4 @@ RCT_EXPORT_METHOD(pay:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)r
 }
 
 @end
+
